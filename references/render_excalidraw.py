@@ -47,6 +47,11 @@ WEB_FONT_FAMILIES = {
     9: "Liberation Sans",
 }
 DEFAULT_FONT_FAMILY = 5
+# Ids the renderer accepts: the web fonts above plus 2 (host Helvetica, documented
+# platform caveat). Anything else, notably the Obsidian plugin's local-font id 4 and
+# string-typed ids, makes the bundle silently fall back to a serif with exit 0, so
+# validation rejects it up front. Derived from WEB_FONT_FAMILIES so the two cannot drift.
+VALID_FONT_FAMILIES = frozenset(WEB_FONT_FAMILIES) | {2}
 GEOMETRY_FIELDS = ("x", "y", "width", "height")
 # The template points EXCALIDRAW_ASSET_PATH at this sentinel host. render() serves it
 # from vendor/ and blocks all other http(s) traffic, so the bundle's baked-in CDN asset
@@ -100,6 +105,11 @@ def validate_excalidraw(data: object) -> list[str]:
             if el.get("type") in ("arrow", "line") and "points" in el and not _valid_points(el["points"]):
                 errors.append(f"element '{el.get('id', '?')}' has malformed 'points' (expected finite [x, y] number pairs)")
                 break
+            if el.get("type") == "text":
+                fam = el.get("fontFamily", DEFAULT_FONT_FAMILY)
+                if not isinstance(fam, int) or isinstance(fam, bool) or fam not in VALID_FONT_FAMILIES:
+                    errors.append(f"element '{el.get('id', '?')}' has unknown fontFamily {fam!r} (valid ids: {sorted(VALID_FONT_FAMILIES)})")
+                    break
 
     return errors
 

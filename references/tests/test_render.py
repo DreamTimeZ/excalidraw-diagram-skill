@@ -108,6 +108,10 @@ def test_template_references_no_real_cdn():
         '{"type":"excalidraw","elements":[{"id":"a","type":"line","points":[[true,false]]}]}',
         '{"type":"excalidraw","elements":[{"id":"a","type":"rectangle","x":Infinity,"y":0,"width":10,"height":10}]}',
         '{"type":"excalidraw","elements":[{"id":"a","type":"rectangle","x":"10","y":0,"width":10,"height":10}]}',
+        '{"type":"excalidraw","elements":[{"id":"a","type":"text","text":"x","fontFamily":"3"}]}',
+        '{"type":"excalidraw","elements":[{"id":"a","type":"text","text":"x","fontFamily":4}]}',
+        '{"type":"excalidraw","elements":[{"id":"a","type":"text","text":"x","fontFamily":true}]}',
+        '{"type":"excalidraw","elements":[{"id":"a","type":"text","text":"x","fontFamily":null}]}',
     ],
 )
 def test_invalid_input_aborts(tmp_path, content):
@@ -129,6 +133,21 @@ def test_validation_skips_deleted_element_geometry():
         ],
     }
     assert rx.validate_excalidraw(data) == []
+
+
+def test_validation_accepts_every_known_font_id():
+    # Acceptance boundary for the fontFamily gate, pinned to a literal: elements built
+    # from VALID_FONT_FAMILIES alone would shrink with the set, so only the literal
+    # makes a regression dropping an id (2 has no render fixture) fail here instead of
+    # in a user render. The element without fontFamily pins DEFAULT_FONT_FAMILY itself
+    # staying inside the valid set.
+    assert rx.VALID_FONT_FAMILIES == frozenset({1, 2, 3, 5, 6, 7, 8, 9})
+    elements = [
+        {"id": f"t{i}", "type": "text", "text": "x", "fontFamily": i}
+        for i in sorted(rx.VALID_FONT_FAMILIES)
+    ]
+    elements.append({"id": "tdefault", "type": "text", "text": "x"})
+    assert rx.validate_excalidraw({"type": "excalidraw", "elements": elements}) == []
 
 
 def test_required_web_fonts_mapping():
