@@ -1,0 +1,44 @@
+name: render
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: references
+    steps:
+      - uses: actions/checkout@v6
+
+      # Fails when a vendored bundle and the MANIFEST drift apart, so a bundle change is
+      # only ever a reviewable one-line hash diff, never a silent 4 MB blob swap.
+      - name: Verify vendored bundle integrity
+        working-directory: references/vendor
+        run: shasum -a 256 -c MANIFEST
+
+
+      # setup-uv publishes no floating major tag since v8, so the exact tag is pinned.
+      - uses: astral-sh/setup-uv@v8.2.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: "references/uv.lock"
+
+      - name: Install locked dependencies
+        run: uv sync --locked --group dev
+
+      - name: Install Chromium
+        run: uv run playwright install --with-deps chromium
+
+      - name: Run tests
+        run: uv run pytest -q
+
+      - name: Preflight self-check
+        run: uv run python render_excalidraw.py --check

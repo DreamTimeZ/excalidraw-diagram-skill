@@ -38,7 +38,7 @@ All elements share these:
 | `text` | The display text |
 | `originalText` | Same as text |
 | `fontSize` | Size in pixels (16-20 recommended) |
-| `fontFamily` | 3 for monospace (use this) |
+| `fontFamily` | 3 monospace (use this), 5 Excalifont (default), 1 Virgil, 2 Helvetica, 6 Nunito, 7 Lilita One, 8 Comic Shanns, 9 Liberation Sans |
 | `textAlign` | "left", "center", "right" |
 | `verticalAlign` | "top", "middle", "bottom" |
 | `containerId` | ID of parent shape |

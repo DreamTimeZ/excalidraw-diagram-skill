@@ -9,66 +9,30 @@
     #root svg { display: block; }
   </style>
   <script>
+    // React and Excalidraw are compiled into one vendored IIFE bundle (rebuild with
+    // build_vendor.sh) and loaded from disk. EXCALIDRAW_ASSET_PATH points at a sentinel
+    // host: render_excalidraw.py serves it from vendor/ via request interception and
+    // blocks every other http(s) request, so rendering never touches the network and
+    // the bundle's baked-in CDN asset fallback can never win.
     window.process = window.process || { env: { NODE_ENV: "production" } };
-    window.EXCALIDRAW_ASSET_PATH = "https://unpkg.com/@excalidraw/excalidraw@0.17.6/dist/";
+    window.EXCALIDRAW_ASSET_PATH = "https://excalidraw-assets.local/";
+    window.__moduleReady = null;
     window.__moduleError = null;
     window.addEventListener("error", function (e) {
       window.__moduleError = String((e && (e.message || e.error)) || "unknown error");
     });
-
-    // Multi-CDN loader: each dependency is tried on unpkg, then jsdelivr, so a single
-    // CDN outage does not stall rendering. Loading is sequential because react-dom and
-    // excalidraw need the React UMD global present first. __moduleReady is set
-    // asynchronously once all three resolve (render_excalidraw.py polls for it).
-    (function () {
-      var SOURCES = [
-        [
-          "https://unpkg.com/react@18.2.0/umd/react.production.min.js",
-          "https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"
-        ],
-        [
-          "https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js",
-          "https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"
-        ],
-        [
-          "https://unpkg.com/@excalidraw/excalidraw@0.17.6/dist/excalidraw.production.min.js",
-          "https://cdn.jsdelivr.net/npm/@excalidraw/excalidraw@0.17.6/dist/excalidraw.production.min.js"
-        ]
-      ];
-      function loadFrom(urls, i, done) {
-        if (i >= urls.length) { done(new Error("all CDNs failed for " + urls[0])); return; }
-        var s = document.createElement("script");
-        s.src = urls[i];
-        s.async = false;
-        s.crossOrigin = "anonymous";
-        s.onload = function () { done(null); };
-        s.onerror = function () {
-          if (s.parentNode) { s.parentNode.removeChild(s); }
-          loadFrom(urls, i + 1, done);
-        };
-        document.head.appendChild(s);
-      }
-      function loadAll(n) {
-        if (n >= SOURCES.length) { finish(); return; }
-        loadFrom(SOURCES[n], 0, function (err) {
-          if (err) {
-            window.__moduleError = String((err && err.message) || err);
-            window.__moduleReady = false;
-            return;
-          }
-          loadAll(n + 1);
-        });
-      }
-      function finish() {
-        if (window.ExcalidrawLib && typeof window.ExcalidrawLib.exportToSvg === "function") {
-          window.__moduleReady = true;
-        } else {
-          window.__moduleReady = false;
-          window.__moduleError = window.__moduleError || "ExcalidrawLib.exportToSvg missing after load";
-        }
-      }
-      loadAll(0);
-    })();
+  </script>
+  <script src="vendor/excalidraw.bundle.js"></script>
+  <script>
+    // exportToSvg present means the bundle loaded and exposed its API. Anything else
+    // fails fast with a pointed message instead of the browser's cross-origin-masked
+    // "Script error." or an opaque timeout.
+    if (window.ExcalidrawLib && typeof window.ExcalidrawLib.exportToSvg === "function") {
+      window.__moduleReady = true;
+    } else {
+      window.__moduleReady = false;
+      window.__moduleError = window.__moduleError || "vendor/excalidraw.bundle.js failed to load";
+    }
   </script>
 </head>
 <body>
@@ -92,11 +56,9 @@
         root.appendChild(svg);
         window.__renderComplete = true;
         window.__renderError = null;
-        return { success: true, width: svg.getAttribute("width"), height: svg.getAttribute("height") };
       } catch (err) {
         window.__renderComplete = true;
         window.__renderError = err && err.message ? err.message : String(err);
-        return { success: false, error: window.__renderError };
       }
     };
   </script>

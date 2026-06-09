@@ -2,6 +2,16 @@
 name = "excalidraw-render"
 version = "0.1.0"
 requires-python = ">=3.11"
+# Pinned exactly: the bundled Chromium revision (and thus font rasterization) is tied to
+# the Playwright version, so an exact pin keeps rendered output reproducible.
 dependencies = [
-    "playwright>=1.40.0",
+    "playwright==1.60.0",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

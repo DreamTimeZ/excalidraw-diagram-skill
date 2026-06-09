@@ -1,0 +1,11 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "tests",
+  "elements": [
+    {"id":"r1","type":"rectangle","x":100,"y":100,"width":260,"height":90,"angle":0,"strokeColor":"#1e1e1e","backgroundColor":"#a5d8ff","fillStyle":"solid","strokeWidth":2,"strokeStyle":"solid","roughness":1,"opacity":100,"groupIds":[],"frameId":null,"roundness":{"type":3},"seed":1,"version":1,"versionNonce":1,"isDeleted":false,"boundElements":[],"updated":1,"link":null,"locked":false},
+    {"id":"t1","type":"text","x":120,"y":130,"width":220,"height":40,"angle":0,"strokeColor":"#1e1e1e","backgroundColor":"transparent","fillStyle":"solid","strokeWidth":1,"strokeStyle":"solid","roughness":1,"opacity":100,"groupIds":[],"frameId":null,"roundness":null,"seed":2,"version":1,"versionNonce":2,"isDeleted":false,"boundElements":[],"updated":1,"link":null,"locked":false,"text":"Hand-drawn äöü ß","fontSize":28,"fontFamily":1,"textAlign":"left","verticalAlign":"top","containerId":null,"originalText":"Hand-drawn äöü ß","lineHeight":1.25,"baseline":25}
+  ],
+  "appState": {"viewBackgroundColor":"#ffffff"},
+  "files": {}
+}

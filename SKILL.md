@@ -420,6 +420,8 @@ Position alone doesn't show relationships. If A relates to B, there must be an a
 
 Settings: `fontSize: 16`, `fontFamily: 3`, `textAlign: "center"`, `verticalAlign: "middle"`
 
+Available `fontFamily` ids (Excalidraw 0.18): `3` Cascadia (monospace, this skill's default), `5` Excalifont (hand-drawn, Excalidraw's default when omitted), `1` Virgil (legacy hand-drawn), `2` Helvetica (system font), `6` Nunito, `7` Lilita One, `8` Comic Shanns, `9` Liberation Sans. There is no id 4. CJK text is unsupported: the render aborts rather than degrade. Emoji are outside that guarantee (no font file is requested, the host OS draws them), so avoid emoji in diagrams.
+
 ---
 
 ## JSON Structure
@@ -506,7 +508,9 @@ If the render script hasn't been set up yet:
 cd .claude/skills/excalidraw-diagram/references
 uv sync
 uv run playwright install chromium
+uv run python render_excalidraw.py --check   # verify the pipeline (offline, vendored)
 ```
+Rendering contacts no network: React and Excalidraw are vendored as a single bundle under `references/vendor/` together with the fonts, and the render browser blocks every real network request. A font that fails to load aborts the render instead of producing a fallback-font diagram.
 
 ---
 

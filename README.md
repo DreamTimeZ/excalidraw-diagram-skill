@@ -8,7 +8,7 @@ Compatible with any coding agent that supports skills. For agents that read from
 
 - **Diagrams that argue, not display.** Every shape/group of shapes mirrors the concept it represents — fan-outs for one-to-many, timelines for sequences, convergence for aggregation. No uniform card grids.
 - **Evidence artifacts.** As an example, technical diagrams include real code snippets and actual JSON payloads.
-- **Built-in visual validation.** A Playwright-based render pipeline lets the agent see its own output, catch layout issues (overlapping text, misaligned arrows, unbalanced spacing), and fix them in a loop before delivering.
+- **Built-in visual validation.** A Playwright-based render pipeline lets the agent see its own output, catch layout issues (overlapping text, misaligned arrows, unbalanced spacing), and fix them in a loop before delivering. Rendering is fully offline (React and Excalidraw are vendored as one bundle, the fonts are vendored, and the render browser blocks every network request), and a font that fails to load aborts the render instead of silently degrading it.
 - **Brand-customizable.** All colors and brand styles live in a single file (`references/color-palette.md`). Swap it out and every diagram follows your palette.
 
 ## Installation
@@ -36,6 +36,19 @@ uv sync
 uv run playwright install chromium
 ```
 
+After setup, rendering needs no network: React 19.2.7 and Excalidraw 0.18.1 are vendored as a single esbuild bundle under `references/vendor/`, together with the Excalidraw web fonts (CJK excluded). The render browser blocks every real network request. Verify the pipeline at any time, or run the regression suite:
+
+```bash
+uv run python render_excalidraw.py --check   # render a built-in fixture end to end
+uv run --group dev pytest                     # full render regression suite
+```
+
+To upgrade the vendored versions, edit the pins at the top of `references/build_vendor.sh` and re-run it (requires Node, pnpm and network). End users never need this: the built bundle is committed.
+
+```bash
+bash references/build_vendor.sh
+```
+
 ## Usage
 
 Ask your coding agent to create a diagram:
@@ -53,11 +66,16 @@ Edit `references/color-palette.md` to match your brand. Everything else in the s
 ```
 excalidraw-diagram/
   SKILL.md                          # Design methodology + workflow
+  .github/workflows/render.yml      # CI: runs the render regression suite
   references/
     color-palette.md                # Brand colors (edit this to customize)
     element-templates.md            # JSON templates for each element type
     json-schema.md                  # Excalidraw JSON format reference
-    render_excalidraw.py            # Render .excalidraw to PNG
-    render_template.html            # Browser template for rendering
-    pyproject.toml                  # Python dependencies (playwright)
+    render_excalidraw.py            # Render .excalidraw to PNG (offline)
+    render_template.html            # Browser template (loads the vendored bundle)
+    build_vendor.sh                 # Rebuild vendor/ from pinned npm versions
+    pyproject.toml                  # Python dependencies (pinned)
+    uv.lock                         # Locked dependency versions
+    vendor/                         # esbuild bundle (React 19 + Excalidraw 0.18), fonts, licenses
+    tests/                          # Render regression suite
 ```

@@ -1,0 +1,39 @@
+Font assets under fonts/ are the subset woff2 builds shipped in the
+@excalidraw/excalidraw npm package (dist/prod/fonts/). Copyright and license
+information below comes from each binary's OpenType name table.
+
+Cascadia Code
+  SIL Open Font License 1.1 (see OFL-1.1.txt)
+  Copyright (c) 2020 Microsoft Corporation
+  https://github.com/microsoft/cascadia-code
+
+ComicShanns
+  MIT License
+  Copyright (c) 2018 Shannon Miwa, (c) 2023 Jesus Gonzalez, (c) 2023 Rodrigo
+  Batista de Moraes, (c) 2024 Fini Jastrow, (c) 2024 Kyle Beechly
+  https://github.com/shannpersand/comic-shanns
+
+Excalifont
+  Copyright (c) 2024 Excalidraw. Distributed as part of the MIT-licensed
+  Excalidraw project (see Excalidraw-LICENSE.txt).
+  https://github.com/excalidraw/excalidraw
+
+Liberation Sans
+  SIL Open Font License 1.1 (see OFL-1.1.txt)
+  Digitized data (c) 2007 Ascender Corporation
+  https://github.com/liberationfonts/liberation-fonts
+
+Lilita One
+  SIL Open Font License 1.1 (see OFL-1.1.txt), Reserved Font Name "Lilita One"
+  Copyright (c) 2011 Juan Montoreano
+  https://fonts.google.com/specimen/Lilita+One
+
+Nunito
+  SIL Open Font License 1.1 (see OFL-1.1.txt)
+  Copyright 2014 The Nunito Project Authors
+  https://github.com/googlefonts/nunito
+
+Virgil
+  SIL Open Font License 1.1 (see OFL-1.1.txt)
+  Copyright (c) 2011 Your Own Font Foundry
+  https://virgil.excalidraw.com

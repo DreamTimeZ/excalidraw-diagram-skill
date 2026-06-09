@@ -1,6 +1,6 @@
 # Element Templates
 
-Copy-paste JSON templates for each Excalidraw element type. The `strokeColor` and `backgroundColor` values are placeholders — always pull actual colors from `color-palette.md` based on the element's semantic purpose.
+Copy-paste JSON templates for each Excalidraw element type. The `strokeColor` and `backgroundColor` values are placeholders — always pull actual colors from `color-palette.md` based on the element's semantic purpose. Templates use `fontFamily: 3` (Cascadia, monospace). See the Text Rules section in SKILL.md for the full font id table.
 
 ## Free-Floating Text (no container)
 ```json

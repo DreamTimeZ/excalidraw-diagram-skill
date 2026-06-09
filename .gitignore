@@ -1,4 +1,6 @@
 .venv/
-*.png
-uv.lock
 __pycache__/
+.pytest_cache/
+
+# Rendered diagram outputs are not committed.
+*.png

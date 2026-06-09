@@ -1,0 +1,12 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "tests",
+  "elements": [
+    {"id":"r1","type":"rectangle","x":50,"y":50,"width":200,"height":100,"angle":0,"strokeColor":"#1e1e1e","backgroundColor":"#a5d8ff","fillStyle":"solid","strokeWidth":2,"strokeStyle":"solid","roughness":1,"opacity":100,"groupIds":[],"frameId":null,"roundness":{"type":3},"seed":1,"version":1,"versionNonce":1,"isDeleted":false,"boundElements":[],"updated":1,"link":null,"locked":false},
+    {"id":"a1","type":"arrow","x":260,"y":100,"width":120,"height":0,"angle":0,"strokeColor":"#1e1e1e","backgroundColor":"transparent","fillStyle":"solid","strokeWidth":2,"strokeStyle":"solid","roughness":1,"opacity":100,"groupIds":[],"frameId":null,"roundness":{"type":2},"seed":3,"version":1,"versionNonce":3,"isDeleted":false,"boundElements":[],"updated":1,"link":null,"locked":false,"points":[[0,0],[120,0]],"startBinding":null,"endBinding":null,"startArrowhead":null,"endArrowhead":"arrow"},
+    {"id":"e1","type":"ellipse","x":400,"y":50,"width":120,"height":100,"angle":0,"strokeColor":"#1e1e1e","backgroundColor":"#b2f2bb","fillStyle":"solid","strokeWidth":2,"strokeStyle":"solid","roughness":1,"opacity":100,"groupIds":[],"frameId":null,"roundness":null,"seed":4,"version":1,"versionNonce":4,"isDeleted":false,"boundElements":[],"updated":1,"link":null,"locked":false}
+  ],
+  "appState": {"viewBackgroundColor":"#ffffff"},
+  "files": {}
+}
