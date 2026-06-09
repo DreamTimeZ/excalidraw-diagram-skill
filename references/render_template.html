@@ -15,10 +15,61 @@
     window.addEventListener("error", function (e) {
       window.__moduleError = String((e && (e.message || e.error)) || "unknown error");
     });
+
+    // Multi-CDN loader: each dependency is tried on unpkg, then jsdelivr, so a single
+    // CDN outage does not stall rendering. Loading is sequential because react-dom and
+    // excalidraw need the React UMD global present first. __moduleReady is set
+    // asynchronously once all three resolve (render_excalidraw.py polls for it).
+    (function () {
+      var SOURCES = [
+        [
+          "https://unpkg.com/react@18.2.0/umd/react.production.min.js",
+          "https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"
+        ],
+        [
+          "https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js",
+          "https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"
+        ],
+        [
+          "https://unpkg.com/@excalidraw/excalidraw@0.17.6/dist/excalidraw.production.min.js",
+          "https://cdn.jsdelivr.net/npm/@excalidraw/excalidraw@0.17.6/dist/excalidraw.production.min.js"
+        ]
+      ];
+      function loadFrom(urls, i, done) {
+        if (i >= urls.length) { done(new Error("all CDNs failed for " + urls[0])); return; }
+        var s = document.createElement("script");
+        s.src = urls[i];
+        s.async = false;
+        s.crossOrigin = "anonymous";
+        s.onload = function () { done(null); };
+        s.onerror = function () {
+          if (s.parentNode) { s.parentNode.removeChild(s); }
+          loadFrom(urls, i + 1, done);
+        };
+        document.head.appendChild(s);
+      }
+      function loadAll(n) {
+        if (n >= SOURCES.length) { finish(); return; }
+        loadFrom(SOURCES[n], 0, function (err) {
+          if (err) {
+            window.__moduleError = String((err && err.message) || err);
+            window.__moduleReady = false;
+            return;
+          }
+          loadAll(n + 1);
+        });
+      }
+      function finish() {
+        if (window.ExcalidrawLib && typeof window.ExcalidrawLib.exportToSvg === "function") {
+          window.__moduleReady = true;
+        } else {
+          window.__moduleReady = false;
+          window.__moduleError = window.__moduleError || "ExcalidrawLib.exportToSvg missing after load";
+        }
+      }
+      loadAll(0);
+    })();
   </script>
-  <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/@excalidraw/excalidraw@0.17.6/dist/excalidraw.production.min.js"></script>
 </head>
 <body>
   <div id="root"></div>
@@ -48,12 +99,6 @@
         return { success: false, error: window.__renderError };
       }
     };
-    if (window.ExcalidrawLib && typeof window.ExcalidrawLib.exportToSvg === "function") {
-      window.__moduleReady = true;
-    } else {
-      window.__moduleReady = false;
-      window.__moduleError = window.__moduleError || "ExcalidrawLib.exportToSvg missing after UMD load";
-    }
   </script>
 </body>
 </html>
