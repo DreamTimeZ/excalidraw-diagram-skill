@@ -420,7 +420,7 @@ Position alone doesn't show relationships. If A relates to B, there must be an a
 
 Settings: `fontSize: 16`, `fontFamily: 3`, `textAlign: "center"`, `verticalAlign: "middle"`
 
-Available `fontFamily` ids (Excalidraw 0.18): `3` Cascadia (monospace, this skill's default), `5` Excalifont (hand-drawn, Excalidraw's default when omitted), `1` Virgil (legacy hand-drawn), `2` Helvetica (system font), `6` Nunito, `7` Lilita One, `8` Comic Shanns, `9` Liberation Sans. There is no id 4. CJK text is unsupported: the render aborts rather than degrade. Emoji are outside that guarantee (no font file is requested, the host OS draws them), so avoid emoji in diagrams.
+Available `fontFamily` ids (Excalidraw 0.18): `3` Cascadia (monospace, this skill's default), `5` Excalifont (hand-drawn, Excalidraw's default when omitted), `1` Virgil (legacy hand-drawn), `2` Helvetica (deprecated system font: rendering varies by host OS, avoid), `6` Nunito, `7` Lilita One, `8` Comic Shanns, `9` Liberation Sans. There is no id 4 in Excalidraw itself (the Obsidian Excalidraw plugin assigns id 4 to its user-configured local font, which this renderer cannot render). CJK text is unsupported: the render aborts rather than degrade. Emoji are outside that guarantee (no font file is requested, the host OS draws them), so avoid emoji in diagrams.
 
 ---
 
