@@ -16,9 +16,11 @@ Compatible with any coding agent that supports skills. For agents that read from
 Clone or download this repo, then copy it into your project's `.claude/skills/` directory:
 
 ```bash
-git clone https://github.com/coleam00/excalidraw-diagram-skill.git
+git clone --depth 1 https://github.com/coleam00/excalidraw-diagram-skill.git
 cp -r excalidraw-diagram-skill .claude/skills/excalidraw-diagram
 ```
+
+To copy the skill into another project later, copy a fresh clone, not an already-set-up copy: `cp -r` ignores `.gitignore` and drags the ~145 MB `references/.venv` along, whose scripts hardcode absolute paths. If you must copy in place, exclude it (`rsync -a --exclude .venv`); a plain `uv sync` in the destination rebuilds it either way.
 
 ## Setup
 
