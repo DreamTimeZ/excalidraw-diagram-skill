@@ -112,6 +112,10 @@ def test_template_references_no_real_cdn():
         '{"type":"excalidraw","elements":[{"id":"a","type":"text","text":"x","fontFamily":4}]}',
         '{"type":"excalidraw","elements":[{"id":"a","type":"text","text":"x","fontFamily":true}]}',
         '{"type":"excalidraw","elements":[{"id":"a","type":"text","text":"x","fontFamily":null}]}',
+        '{"type":"excalidraw","elements":[{"id":"a","type":"arrow","points":[]}]}',
+        '{"type":"excalidraw","elements":[{"id":"a","type":"arrow","points":[[0,0]]}]}',
+        '{"type":"excalidraw","elements":[{"id":"a","type":"freedraw","points":[[0,0],[NaN,5]]}]}',
+        '{"type":"excalidraw","elements":[{"id":"a","type":"freedraw","points":[]}]}',
     ],
 )
 def test_invalid_input_aborts(tmp_path, content):
@@ -148,6 +152,16 @@ def test_validation_accepts_every_known_font_id():
     ]
     elements.append({"id": "tdefault", "type": "text", "text": "x"})
     assert rx.validate_excalidraw({"type": "excalidraw", "elements": elements}) == []
+
+
+def test_validation_accepts_single_point_freedraw():
+    # A one-point freedraw is a legal dot, so the two-point arrow/line minimum must not
+    # apply to it. Guards the per-type minimum in MIN_POINTS.
+    data = {
+        "type": "excalidraw",
+        "elements": [{"id": "f", "type": "freedraw", "x": 0, "y": 0, "width": 1, "height": 1, "points": [[0, 0]]}],
+    }
+    assert rx.validate_excalidraw(data) == []
 
 
 def test_required_web_fonts_mapping():

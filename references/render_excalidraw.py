@@ -53,6 +53,10 @@ DEFAULT_FONT_FAMILY = 5
 # validation rejects it up front. Derived from WEB_FONT_FAMILIES so the two cannot drift.
 VALID_FONT_FAMILIES = frozenset(WEB_FONT_FAMILIES) | {2}
 GEOMETRY_FIELDS = ("x", "y", "width", "height")
+# Types whose 'points' are validated, with the minimum count that draws anything (a
+# segment for arrow/line, a dot for freedraw). Freedraw is included because a NaN
+# coordinate makes the bundle silently drop the whole element with exit 0.
+MIN_POINTS = {"arrow": 2, "line": 2, "freedraw": 1}
 # The template points EXCALIDRAW_ASSET_PATH at this sentinel host. render() serves it
 # from vendor/ and blocks all other http(s) traffic, so the bundle's baked-in CDN asset
 # fallback can never reach the network.
@@ -66,9 +70,10 @@ def _is_finite_number(value: object) -> bool:
     return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
 
 
-def _valid_points(points: object) -> bool:
-    """True if points is a list of [x, y] finite-number pairs (what compute_bounding_box unpacks)."""
-    return isinstance(points, list) and all(
+def _valid_points(points: object, minimum: int) -> bool:
+    """True if points is a list of at least `minimum` [x, y] finite-number pairs (what
+    compute_bounding_box unpacks for arrow/line; fewer than the minimum draws nothing)."""
+    return isinstance(points, list) and len(points) >= minimum and all(
         isinstance(p, (list, tuple)) and len(p) == 2 and all(_is_finite_number(c) for c in p)
         for p in points
     )
@@ -102,8 +107,9 @@ def validate_excalidraw(data: object) -> list[str]:
             if bad_fields:
                 errors.append(f"element '{el.get('id', '?')}' has non-finite or non-numeric {', '.join(bad_fields)}")
                 break
-            if el.get("type") in ("arrow", "line") and "points" in el and not _valid_points(el["points"]):
-                errors.append(f"element '{el.get('id', '?')}' has malformed 'points' (expected finite [x, y] number pairs)")
+            min_points = MIN_POINTS.get(el.get("type"))
+            if min_points is not None and "points" in el and not _valid_points(el["points"], min_points):
+                errors.append(f"element '{el.get('id', '?')}' has malformed 'points' (expected at least {min_points} finite [x, y] pairs)")
                 break
             if el.get("type") == "text":
                 fam = el.get("fontFamily", DEFAULT_FONT_FAMILY)
