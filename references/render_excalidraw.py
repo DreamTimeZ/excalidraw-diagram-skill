@@ -213,10 +213,17 @@ def render(
             raise
 
         with browser:
-            page = browser.new_page(
+            # Belt and braces on top of the route blockers: offline=True makes Chromium
+            # fail anything that reaches the real network stack (route-fulfilled
+            # requests never do), which also covers WebSockets, and service workers
+            # (whose fetches bypass page routes) are blocked outright.
+            context = browser.new_context(
                 viewport={"width": vp_width, "height": vp_height},
                 device_scale_factor=scale,
+                offline=True,
+                service_workers="block",
             )
+            page = context.new_page()
 
             # Offline enforcement: block every real http(s) request and serve the
             # sentinel asset host from vendor/ instead. file:// URLs (the template and
@@ -284,13 +291,17 @@ def render(
             # Correctness gate: require a *loaded* face for every web font this diagram
             # uses. Excalidraw 0.18 registers faces lazily for just the fonts a render
             # touches, and a face whose fetch was blocked or failed never reaches status
-            # 'loaded', so this catches any font that silently fell back.
+            # 'loaded', so this catches any font that silently fell back. A face in
+            # status 'error' (served but unparsable) also fails its family: its glyphs
+            # fall back even when a sibling unicode-range subset loaded fine.
             required = required_web_fonts(elements)
             if required:
                 missing = page.evaluate(
                     "async (fams) => { try { await document.fonts.ready; } catch (e) {} "
-                    "return fams.filter(fam => ![...document.fonts]"
-                    ".some(f => f.family === fam && f.status === 'loaded')); }",
+                    "return fams.filter(fam => { "
+                    "const faces = [...document.fonts].filter(f => f.family === fam); "
+                    "return !faces.some(f => f.status === 'loaded') "
+                    "|| faces.some(f => f.status === 'error'); }); }",
                     sorted(required),
                 )
                 if missing:
@@ -330,6 +341,16 @@ def render(
                 sys.exit(1)
 
             svg_el.screenshot(path=str(output_path))
+
+            # The checks above read the route logs at one instant. A request still in
+            # flight then has had its handler dispatched during the blocking calls
+            # since, and a late hit voids the offline/font guarantees, so the PNG
+            # written above must not survive it.
+            if blocked_requests or missing_assets:
+                output_path.unlink(missing_ok=True)
+                stray = ", ".join(sorted(set(blocked_requests) | set(missing_assets)))
+                print(f"ERROR: asset or network activity after the render checks: {stray}", file=sys.stderr)
+                sys.exit(1)
 
     return output_path
 
@@ -402,6 +423,8 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.check:
+        if args.input is not None:
+            parser.error("--check takes no input file")
         run_self_check()
         return
 
