@@ -8,50 +8,52 @@
     #root { display: inline-block; }
     #root svg { display: block; }
   </style>
+  <script>
+    window.process = window.process || { env: { NODE_ENV: "production" } };
+    window.EXCALIDRAW_ASSET_PATH = "https://unpkg.com/@excalidraw/excalidraw@0.17.6/dist/";
+    window.__moduleError = null;
+    window.addEventListener("error", function (e) {
+      window.__moduleError = String((e && (e.message || e.error)) || "unknown error");
+    });
+  </script>
+  <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/@excalidraw/excalidraw@0.17.6/dist/excalidraw.production.min.js"></script>
 </head>
 <body>
   <div id="root"></div>
-
-  <script type="module">
-    import { exportToSvg } from "https://esm.sh/@excalidraw/excalidraw?bundle";
-
-    window.renderDiagram = async function(jsonData) {
+  <script>
+    window.renderDiagram = async function (jsonData) {
       try {
         const data = typeof jsonData === "string" ? JSON.parse(jsonData) : jsonData;
         const elements = data.elements || [];
         const appState = data.appState || {};
         const files = data.files || {};
-
-        // Force white background in appState
         appState.viewBackgroundColor = appState.viewBackgroundColor || "#ffffff";
         appState.exportWithDarkMode = false;
-
-        const svg = await exportToSvg({
+        const svg = await window.ExcalidrawLib.exportToSvg({
           elements: elements,
-          appState: {
-            ...appState,
-            exportBackground: true,
-          },
+          appState: { ...appState, exportBackground: true },
           files: files,
         });
-
-        // Clear any previous render
         const root = document.getElementById("root");
         root.innerHTML = "";
         root.appendChild(svg);
-
         window.__renderComplete = true;
         window.__renderError = null;
         return { success: true, width: svg.getAttribute("width"), height: svg.getAttribute("height") };
       } catch (err) {
         window.__renderComplete = true;
-        window.__renderError = err.message;
-        return { success: false, error: err.message };
+        window.__renderError = err && err.message ? err.message : String(err);
+        return { success: false, error: window.__renderError };
       }
     };
-
-    // Signal that the module is loaded and ready
-    window.__moduleReady = true;
+    if (window.ExcalidrawLib && typeof window.ExcalidrawLib.exportToSvg === "function") {
+      window.__moduleReady = true;
+    } else {
+      window.__moduleReady = false;
+      window.__moduleError = window.__moduleError || "ExcalidrawLib.exportToSvg missing after UMD load";
+    }
   </script>
 </body>
 </html>
