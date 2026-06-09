@@ -1,0 +1,13 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "tests",
+  "elements": [
+    {"id":"t6","type":"text","x":20,"y":20,"width":260,"height":30,"angle":0,"strokeColor":"#1e1e1e","backgroundColor":"transparent","fillStyle":"solid","strokeWidth":1,"strokeStyle":"solid","roughness":1,"opacity":100,"groupIds":[],"frameId":null,"roundness":null,"seed":6,"version":1,"versionNonce":6,"isDeleted":false,"boundElements":[],"updated":1,"link":null,"locked":false,"text":"Nunito sample","fontSize":20,"fontFamily":6,"textAlign":"left","verticalAlign":"top","containerId":null,"originalText":"Nunito sample","lineHeight":1.25,"baseline":16},
+    {"id":"t7","type":"text","x":20,"y":70,"width":260,"height":30,"angle":0,"strokeColor":"#1e1e1e","backgroundColor":"transparent","fillStyle":"solid","strokeWidth":1,"strokeStyle":"solid","roughness":1,"opacity":100,"groupIds":[],"frameId":null,"roundness":null,"seed":7,"version":1,"versionNonce":7,"isDeleted":false,"boundElements":[],"updated":1,"link":null,"locked":false,"text":"Lilita One sample","fontSize":20,"fontFamily":7,"textAlign":"left","verticalAlign":"top","containerId":null,"originalText":"Lilita One sample","lineHeight":1.25,"baseline":16},
+    {"id":"t8","type":"text","x":20,"y":120,"width":260,"height":30,"angle":0,"strokeColor":"#1e1e1e","backgroundColor":"transparent","fillStyle":"solid","strokeWidth":1,"strokeStyle":"solid","roughness":1,"opacity":100,"groupIds":[],"frameId":null,"roundness":null,"seed":8,"version":1,"versionNonce":8,"isDeleted":false,"boundElements":[],"updated":1,"link":null,"locked":false,"text":"Comic Shanns sample","fontSize":20,"fontFamily":8,"textAlign":"left","verticalAlign":"top","containerId":null,"originalText":"Comic Shanns sample","lineHeight":1.25,"baseline":16},
+    {"id":"t9","type":"text","x":20,"y":170,"width":260,"height":30,"angle":0,"strokeColor":"#1e1e1e","backgroundColor":"transparent","fillStyle":"solid","strokeWidth":1,"strokeStyle":"solid","roughness":1,"opacity":100,"groupIds":[],"frameId":null,"roundness":null,"seed":9,"version":1,"versionNonce":9,"isDeleted":false,"boundElements":[],"updated":1,"link":null,"locked":false,"text":"Liberation Sans sample","fontSize":20,"fontFamily":9,"textAlign":"left","verticalAlign":"top","containerId":null,"originalText":"Liberation Sans sample","lineHeight":1.25,"baseline":16}
+  ],
+  "appState": {"viewBackgroundColor":"#ffffff"},
+  "files": {}
+}

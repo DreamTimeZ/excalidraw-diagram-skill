@@ -42,6 +42,14 @@ def test_excalifont_fixture_renders(tmp_path):
     assert out.exists() and out.stat().st_size > 0
 
 
+def test_remaining_font_families_render(tmp_path):
+    # fontFamily 6-9 (Nunito, Lilita One, Comic Shanns, Liberation Sans) cover the
+    # vendored families no other fixture touches, so a gate/bundle family-name
+    # mismatch or a missing vendored file fails here instead of in a user render.
+    out = render_fixture("morefonts", tmp_path)
+    assert out.exists() and out.stat().st_size > 0
+
+
 def test_shapes_fixture_renders(tmp_path):
     out = render_fixture("shapes", tmp_path)
     assert out.exists() and out.stat().st_size > 0
@@ -173,3 +181,11 @@ def test_cli_check_succeeds(monkeypatch, capsys):
     monkeypatch.setattr(sys, "argv", ["render_excalidraw.py", "--check"])
     rx.main()  # run_self_check exits nonzero on any failure, so returning means healthy
     assert "OK:" in capsys.readouterr().out
+
+
+def test_cli_check_rejects_input(monkeypatch):
+    # --check silently ignoring a positional input would read as "that file rendered".
+    monkeypatch.setattr(sys, "argv", ["render_excalidraw.py", "x.excalidraw", "--check"])
+    with pytest.raises(SystemExit) as exc:
+        rx.main()
+    assert exc.value.code == 2
