@@ -22,7 +22,12 @@ jobs:
       # only ever a reviewable one-line hash diff, never a silent 4 MB blob swap.
       - name: Verify vendored bundle integrity
         working-directory: references/vendor
-        run: shasum -a 256 -c MANIFEST
+        run: |
+          shasum -a 256 -c MANIFEST
+          # shasum -c verifies listed files only, so an added-but-unlisted file passes
+          # it. Diffing the tree against the MANIFEST paths closes that gap.
+          diff <(sed -n 's/^[0-9a-f]\{64\}  //p' MANIFEST | LC_ALL=C sort) \
+               <(find . -type f -not -name MANIFEST | sed 's|^\./||' | LC_ALL=C sort)
 
 
       # setup-uv publishes no floating major tag since v8, so the exact tag is pinned.
