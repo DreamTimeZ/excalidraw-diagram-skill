@@ -110,6 +110,7 @@ def test_template_references_no_real_cdn():
         '{"type":"excalidraw","elements":[{"id":"a","type":"rectangle","x":"10","y":0,"width":10,"height":10}]}',
         '{"type":"excalidraw","elements":[{"id":"a","type":"text","text":"x","fontFamily":"3"}]}',
         '{"type":"excalidraw","elements":[{"id":"a","type":"text","text":"x","fontFamily":4}]}',
+        '{"type":"excalidraw","elements":[{"id":"a","type":"text","text":"x","fontFamily":2}]}',
         '{"type":"excalidraw","elements":[{"id":"a","type":"text","text":"x","fontFamily":true}]}',
         '{"type":"excalidraw","elements":[{"id":"a","type":"text","text":"x","fontFamily":null}]}',
         '{"type":"excalidraw","elements":[{"id":"a","type":"arrow","points":[]}]}',
@@ -142,10 +143,10 @@ def test_validation_skips_deleted_element_geometry():
 def test_validation_accepts_every_known_font_id():
     # Acceptance boundary for the fontFamily gate, pinned to a literal: elements built
     # from VALID_FONT_FAMILIES alone would shrink with the set, so only the literal
-    # makes a regression dropping an id (2 has no render fixture) fail here instead of
-    # in a user render. The element without fontFamily pins DEFAULT_FONT_FAMILY itself
+    # makes a regression dropping an id fail here, pointedly, instead of in a render
+    # fixture. The element without fontFamily pins DEFAULT_FONT_FAMILY itself
     # staying inside the valid set.
-    assert rx.VALID_FONT_FAMILIES == frozenset({1, 2, 3, 5, 6, 7, 8, 9})
+    assert rx.VALID_FONT_FAMILIES == frozenset({1, 3, 5, 6, 7, 8, 9})
     elements = [
         {"id": f"t{i}", "type": "text", "text": "x", "fontFamily": i}
         for i in sorted(rx.VALID_FONT_FAMILIES)
@@ -168,13 +169,12 @@ def test_required_web_fonts_mapping():
     elements = [
         {"type": "text", "fontFamily": 1},
         {"type": "text", "fontFamily": 3},
-        {"type": "text", "fontFamily": 2},
         {"type": "text"},
         {"type": "text", "fontFamily": 1, "isDeleted": True},
         {"type": "rectangle"},
     ]
-    # Id 2 (system Helvetica) needs no web font, an element without fontFamily falls
-    # back to the Excalifont default (id 5), and deleted elements are skipped.
+    # An element without fontFamily falls back to the Excalifont default (id 5) and
+    # deleted elements are skipped.
     assert rx.required_web_fonts(elements) == {"Virgil", "Cascadia", "Excalifont"}
 
 

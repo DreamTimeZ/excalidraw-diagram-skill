@@ -33,10 +33,11 @@ DEFAULT_MAX_WIDTH = 1920
 VIEWPORT_PADDING = 80
 MIN_VIEWPORT_HEIGHT = 600
 EMPTY_BOUNDING_BOX = (0, 0, 800, 600)
-# Excalidraw 0.18.1 font-family ids that map to a vendored web font. Id 2 is the system
-# Helvetica and needs no asset, id 4 was never assigned, and the automatic Xiaolai CJK
-# fallback is intentionally not vendored: requesting its subsets makes render() abort
-# (see the missing-asset check) instead of silently degrading.
+# Excalidraw 0.18.1 font-family ids that map to a vendored web font. Ids 2 (host
+# Helvetica) and 4 (never assigned by Excalidraw) have no vendored asset and are
+# rejected by validation, and the automatic Xiaolai CJK fallback is intentionally not
+# vendored: requesting its subsets makes render() abort (see the missing-asset check)
+# instead of silently degrading.
 WEB_FONT_FAMILIES = {
     1: "Virgil",
     3: "Cascadia",
@@ -47,11 +48,11 @@ WEB_FONT_FAMILIES = {
     9: "Liberation Sans",
 }
 DEFAULT_FONT_FAMILY = 5
-# Ids the renderer accepts: the web fonts above plus 2 (host Helvetica, documented
-# platform caveat). Anything else, notably the Obsidian plugin's local-font id 4 and
-# string-typed ids, makes the bundle silently fall back to a serif with exit 0, so
+# Ids validation accepts: exactly the vendored web fonts above. Anything else makes
+# the output platform-dependent with exit 0 (id 2: each host OS substitutes its own
+# Helvetica, id 4 and string-typed ids: the bundle silently falls back to a serif), so
 # validation rejects it up front. Derived from WEB_FONT_FAMILIES so the two cannot drift.
-VALID_FONT_FAMILIES = frozenset(WEB_FONT_FAMILIES) | {2}
+VALID_FONT_FAMILIES = frozenset(WEB_FONT_FAMILIES)
 GEOMETRY_FIELDS = ("x", "y", "width", "height")
 # Types whose 'points' are validated, with the minimum count that draws anything (a
 # segment for arrow/line, a dot for freedraw). Freedraw is included because a NaN
