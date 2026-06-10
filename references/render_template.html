@@ -46,11 +46,29 @@
         const files = data.files || {};
         appState.viewBackgroundColor = appState.viewBackgroundColor || "#ffffff";
         appState.exportWithDarkMode = false;
-        const svg = await window.ExcalidrawLib.exportToSvg({
-          elements: elements,
-          appState: { ...appState, exportBackground: true },
-          files: files,
-        });
+        // Excalidraw catches per-element render exceptions and reports them only via
+        // console.error, delivering an SVG that silently misses those elements (e.g. a
+        // freedraw element without its pressures array). Capture the calls during
+        // export and fail the render instead.
+        const consoleErrors = [];
+        const originalConsoleError = console.error;
+        console.error = function (...args) {
+          consoleErrors.push(args.map(a => (a && a.message) || String(a)).join(" "));
+          originalConsoleError.apply(console, args);
+        };
+        let svg;
+        try {
+          svg = await window.ExcalidrawLib.exportToSvg({
+            elements: elements,
+            appState: { ...appState, exportBackground: true },
+            files: files,
+          });
+        } finally {
+          console.error = originalConsoleError;
+        }
+        if (consoleErrors.length > 0) {
+          throw new Error("element(s) failed to render: " + consoleErrors.join("; "));
+        }
         const root = document.getElementById("root");
         root.innerHTML = "";
         root.appendChild(svg);

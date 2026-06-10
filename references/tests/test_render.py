@@ -7,6 +7,7 @@ input is rejected. A passing render of a text fixture implies its fonts loaded, 
 fatal font gate runs inside render().
 """
 
+import json
 import sys
 from pathlib import Path
 
@@ -53,6 +54,26 @@ def test_remaining_font_families_render(tmp_path):
 def test_shapes_fixture_renders(tmp_path):
     out = render_fixture("shapes", tmp_path)
     assert out.exists() and out.stat().st_size > 0
+
+
+def test_skeleton_freedraw_aborts(tmp_path, capsys):
+    # A freedraw element without its pressures/simulatePressure fields makes the bundle
+    # throw while drawing it; Excalidraw swallows that into console.error and delivers
+    # an SVG without the stroke. The template's console-error gate must turn that into
+    # an abort instead of a PNG that silently lost an element. Every abort path exits 1,
+    # so only the message assertion pins the failure to that gate.
+    elements = [
+        {"id": "r", "type": "rectangle", "x": 0, "y": 0, "width": 200, "height": 100, "seed": 7},
+        {"id": "f", "type": "freedraw", "x": 20, "y": 20, "width": 100, "height": 60,
+         "strokeColor": "#e03131", "strokeWidth": 4, "seed": 8,
+         "points": [[0, 0], [50, 30], [100, 60]]},
+    ]
+    src = tmp_path / "skeleton.excalidraw"
+    src.write_text(json.dumps({"type": "excalidraw", "elements": elements}), encoding="utf-8")
+    with pytest.raises(SystemExit) as exc:
+        rx.render(src, tmp_path / "out.png")
+    assert exc.value.code == 1
+    assert "element(s) failed to render" in capsys.readouterr().err
 
 
 def test_render_is_deterministic(tmp_path):
