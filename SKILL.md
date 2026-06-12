@@ -434,11 +434,14 @@ Available `fontFamily` ids (Excalidraw 0.18): `3` Cascadia (monospace, this skil
   "elements": [...],
   "appState": {
     "viewBackgroundColor": "#ffffff",
+    "exportWithDarkMode": true,
     "gridSize": 20
   },
   "files": {}
 }
 ```
+
+Dark output is the default. Author all colors for light mode (keep `viewBackgroundColor: "#ffffff"`): the renderer's dark filter maps them at export. Dark-authored fills (evidence cards) correctly render light, not a defect. Avoid embedded raster images (`files`): they render color-inverted. Set `"exportWithDarkMode": false` only on explicit request.
 
 ## Element Templates
 

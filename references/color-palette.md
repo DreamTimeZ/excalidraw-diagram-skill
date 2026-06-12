@@ -65,3 +65,6 @@ Used for code snippets, data examples, and other concrete evidence inside techni
 | Property | Value |
 |----------|-------|
 | Canvas background | `#ffffff` |
+| Output theme | Dark (`exportWithDarkMode: true`) |
+
+All colors in this file are light-mode values: the dark export filter maps them automatically (dark fills, like the evidence cards, intentionally come out light). `"exportWithDarkMode": false` renders light.
