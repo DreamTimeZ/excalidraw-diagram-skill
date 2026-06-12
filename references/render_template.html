@@ -45,7 +45,10 @@
         const appState = data.appState || {};
         const files = data.files || {};
         appState.viewBackgroundColor = appState.viewBackgroundColor || "#ffffff";
-        appState.exportWithDarkMode = false;
+        // Dark output is the skill default. Scenes stay authored in light-mode colors:
+        // Excalidraw's theme filter on the exported SVG does the dark mapping, so the
+        // same file still displays correctly in a light-mode editor.
+        appState.exportWithDarkMode = appState.exportWithDarkMode ?? true;
         // Excalidraw catches per-element render exceptions and reports them only via
         // console.error, delivering an SVG that silently misses those elements (e.g. a
         // freedraw element without its pressures array). Capture the calls during

@@ -8,7 +8,9 @@ fatal font gate runs inside render().
 """
 
 import json
+import struct
 import sys
+import zlib
 from pathlib import Path
 
 import pytest
@@ -54,6 +56,65 @@ def test_remaining_font_families_render(tmp_path):
 def test_shapes_fixture_renders(tmp_path):
     out = render_fixture("shapes", tmp_path)
     assert out.exists() and out.stat().st_size > 0
+
+
+# Channel bounds for theme checks: the white canvas becomes about #121212 under
+# Excalidraw's invert(93%) dark filter, and stays #ffffff in an explicit light render.
+DARK_CHANNEL_MAX = 60
+LIGHT_CHANNEL_MIN = 200
+
+
+def first_pixel_rgb(png_path: Path) -> tuple[int, int, int]:
+    # Stdlib-only PNG peek: for the first pixel of the first scanline every PNG filter
+    # type reduces to the raw bytes (the left/up/upper-left predecessors are all zero),
+    # so the pixel is readable without unfiltering or an image library.
+    raw = png_path.read_bytes()
+    assert raw[:8] == b"\x89PNG\r\n\x1a\n"
+    idat = bytearray()
+    pos = 8
+    while pos < len(raw):
+        length = int.from_bytes(raw[pos:pos + 4], "big")
+        chunk_type = raw[pos + 4:pos + 8]
+        if chunk_type == b"IHDR":
+            _, _, bit_depth, color_type = struct.unpack(">IIBB", raw[pos + 8:pos + 18])
+            assert bit_depth == 8 and color_type in (2, 6)  # RGB or RGBA
+        elif chunk_type == b"IDAT":
+            idat += raw[pos + 8:pos + 8 + length]
+        elif chunk_type == b"IEND":
+            break
+        pos += length + 12
+    scanline = zlib.decompress(bytes(idat))
+    return tuple(scanline[1:4])  # byte 0 is the row's filter type
+
+
+def test_render_defaults_to_dark_mode(tmp_path):
+    # The fixture's appState has no exportWithDarkMode, so the template default must
+    # kick in and the corner background pixel must come out dark, not white.
+    out = render_fixture("text", tmp_path)
+    assert all(c <= DARK_CHANNEL_MAX for c in first_pixel_rgb(out))
+
+
+def test_explicit_light_mode_overrides_dark_default(tmp_path):
+    # "exportWithDarkMode": false in the file must win over the renderer's dark default.
+    data = json.loads((FIXTURES / "text.excalidraw").read_text(encoding="utf-8"))
+    data["appState"]["exportWithDarkMode"] = False
+    src = tmp_path / "light.excalidraw"
+    src.write_text(json.dumps(data), encoding="utf-8")
+    out = tmp_path / "light.png"
+    rx.render(src, out)
+    assert all(c >= LIGHT_CHANNEL_MIN for c in first_pixel_rgb(out))
+
+
+def test_dark_default_applies_without_appstate(tmp_path):
+    # A file with no appState at all takes the template's `data.appState || {}` branch;
+    # the dark default must apply there too, not only when appState lacks the key.
+    data = json.loads((FIXTURES / "text.excalidraw").read_text(encoding="utf-8"))
+    del data["appState"]
+    src = tmp_path / "noappstate.excalidraw"
+    src.write_text(json.dumps(data), encoding="utf-8")
+    out = tmp_path / "noappstate.png"
+    rx.render(src, out)
+    assert all(c <= DARK_CHANNEL_MAX for c in first_pixel_rgb(out))
 
 
 def test_skeleton_freedraw_aborts(tmp_path, capsys):
