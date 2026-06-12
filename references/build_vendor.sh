@@ -46,6 +46,15 @@ printf 'import * as ExcalidrawLib from "@excalidraw/excalidraw";\nwindow.Excalid
 STAGE="$BUILD_DIR/vendor"
 mkdir -p "$STAGE/fonts" "$STAGE/licenses"
 
+# The minified bundle inlines upstream's env defaults, among them
+# VITE_APP_FIREBASE_CONFIG: Excalidraw's public Firebase web API key for the
+# excalidraw-room-persistence collab backend. Firebase web keys identify a
+# project rather than grant access (security is enforced by Firebase rules), so
+# the value is public by design, is not our credential, and is never reached by
+# the exportToSvg export path. It is left intact rather than stripped: patching
+# it out would diverge the bundle from upstream's reproducible esbuild output and
+# break its MANIFEST hash. GitHub secret scanning reports it as google_api_key.
+# Resolve that alert as a false positive (it is not a leak).
 # CSS is only needed by the interactive editor. exportToSvg inlines all styling.
 pnpm exec esbuild entry.js --bundle --format=iife --minify \
     --define:process.env.NODE_ENV='"production"' \
