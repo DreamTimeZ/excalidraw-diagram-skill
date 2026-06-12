@@ -118,6 +118,20 @@ def validate_excalidraw(data: object) -> list[str]:
                     errors.append(f"element '{el.get('id', '?')}' has unknown fontFamily {fam!r} (valid ids: {sorted(VALID_FONT_FAMILIES)})")
                     break
 
+    # The template reads exportWithDarkMode for truthiness, so the string "false"
+    # renders dark with exit 0: the author's intent silently inverted. A truthy
+    # non-object appState is worse: it survives the template's `data.appState || {}`,
+    # property writes on it silently no-op, and the export falls back to light with
+    # exit 0, bypassing the dark default. Reject both loudly, same policy as string
+    # fontFamily ids.
+    app_state = data.get("appState")
+    if app_state is not None and not isinstance(app_state, dict):
+        errors.append(f"'appState' must be an object, got {type(app_state).__name__}")
+    elif isinstance(app_state, dict):
+        dark = app_state.get("exportWithDarkMode")
+        if dark is not None and not isinstance(dark, bool):
+            errors.append(f"appState.exportWithDarkMode must be true or false, got {dark!r}")
+
     return errors
 
 

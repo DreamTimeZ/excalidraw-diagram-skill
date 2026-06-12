@@ -199,6 +199,10 @@ def test_template_references_no_real_cdn():
         '{"type":"excalidraw","elements":[{"id":"a","type":"arrow","points":[[0,0]]}]}',
         '{"type":"excalidraw","elements":[{"id":"a","type":"freedraw","points":[[0,0],[NaN,5]]}]}',
         '{"type":"excalidraw","elements":[{"id":"a","type":"freedraw","points":[]}]}',
+        '{"type":"excalidraw","elements":[{"id":"a","type":"rectangle","x":0,"y":0,"width":10,"height":10}],"appState":{"exportWithDarkMode":"false"}}',
+        '{"type":"excalidraw","elements":[{"id":"a","type":"rectangle","x":0,"y":0,"width":10,"height":10}],"appState":{"exportWithDarkMode":1}}',
+        '{"type":"excalidraw","elements":[{"id":"a","type":"rectangle","x":0,"y":0,"width":10,"height":10}],"appState":"oops"}',
+        '{"type":"excalidraw","elements":[{"id":"a","type":"rectangle","x":0,"y":0,"width":10,"height":10}],"appState":[]}',
     ],
 )
 def test_invalid_input_aborts(tmp_path, content):
