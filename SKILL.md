@@ -456,10 +456,12 @@ You cannot judge a diagram from JSON alone. After generating or editing the Exca
 ### How to Render
 
 ```bash
-cd .claude/skills/excalidraw-diagram/references && uv run python render_excalidraw.py <path-to-file.excalidraw>
+cd .claude/skills/excalidraw-diagram/references && uv run python render_excalidraw.py <path-to-file.excalidraw> -o "${TMPDIR:-/tmp}/excalidraw-preview-<diagram-name>.png"
 ```
 
-This outputs a PNG next to the `.excalidraw` file. Then use the **Read tool** on the PNG to actually view it.
+Then use the **Read tool** on that temp PNG to actually view it.
+
+The PNG is a validation artifact: the deliverable is the `.excalidraw` file alone. The fixed temp name keeps every re-render overwriting the same preview. A concurrent session rendering a same-named diagram shares that path, so if the preview does not look like your diagram at all, you are seeing someone else's render: re-render before judging. Only when the user explicitly asks for a PNG, render without `-o` so it lands next to the `.excalidraw` file.
 
 ### The Loop
 
@@ -504,6 +506,8 @@ The loop is done when:
 - Arrows route cleanly and connect to the right elements
 - Spacing is consistent and the composition is balanced
 - You'd be comfortable showing it to someone without caveats
+
+Then delete the temp preview PNG.
 
 ### First-Time Setup
 If the render script hasn't been set up yet:
