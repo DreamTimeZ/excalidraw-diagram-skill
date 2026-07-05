@@ -73,7 +73,7 @@ excalidraw-diagram/
     color-palette.md                # Brand colors (edit this to customize)
     element-templates.md            # JSON templates for each element type
     json-schema.md                  # Excalidraw JSON format reference
-    render_excalidraw.py            # Render .excalidraw to PNG (offline)
+    render_excalidraw.py            # Render .excalidraw / Obsidian .excalidraw.md to PNG (offline; --both for light+dark)
     render_template.html            # Browser template (loads the vendored bundle)
     build_vendor.sh                 # Rebuild vendor/ from pinned npm versions
     pyproject.toml                  # Python dependencies (pinned)

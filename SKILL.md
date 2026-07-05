@@ -463,6 +463,14 @@ Then use the **Read tool** on that temp PNG to actually view it.
 
 The PNG is a validation artifact: the deliverable is the `.excalidraw` file alone. The fixed temp name keeps every re-render overwriting the same preview. A concurrent session rendering a same-named diagram shares that path, so if the preview does not look like your diagram at all, you are seeing someone else's render: re-render before judging. Only when the user explicitly asks for a PNG, render without `-o` so it lands next to the `.excalidraw` file.
 
+**Input formats.** Input is a plain `.excalidraw` file or an Obsidian `.excalidraw.md` file; both are handled automatically.
+
+**Themes.** PNG previews are dark by default — keep authoring diagrams in the light-mode brand colors regardless. Pass `--light` for a light-only PNG, or `--both` to write `<name>-light.png` and `<name>-dark.png` together. `--dark`/`--light` override a file's own `exportWithDarkMode`.
+
+```bash
+uv run python render_excalidraw.py path/to/diagram.excalidraw.md --both
+```
+
 ### The Loop
 
 After generating the initial JSON, run this cycle:
