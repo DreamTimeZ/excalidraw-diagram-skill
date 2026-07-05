@@ -308,3 +308,319 @@ def test_cli_check_rejects_input(monkeypatch):
     with pytest.raises(SystemExit) as exc:
         rx.main()
     assert exc.value.code == 2
+
+
+# --- Obsidian .excalidraw.md extraction ---------------------------------------------
+
+def raw_excalidraw_md(scene: dict) -> str:
+    # An Obsidian .excalidraw.md in 'raw' plugin mode: the scene is a plain 'json' fence
+    # under the '## Drawing' heading. Compressed-mode extraction is covered by the
+    # committed text.excalidraw.md fixture (its base64 needs the plugin's LZString, which
+    # is deliberately not a project dependency).
+    return (
+        "---\nexcalidraw-plugin: raw\n---\n\n"
+        "# Excalidraw Data\n\n## Text Elements\nok ^a\n\n## Drawing\n"
+        f"```json\n{json.dumps(scene)}\n```\n%%"
+    )
+
+
+def test_compressed_fixture_decodes_to_text_scene():
+    # The committed compressed-json fixture must decode, byte for byte, to the same scene
+    # as text.excalidraw. This pins both the vendored LZString port and the fixture itself:
+    # regenerating the fixture wrong (or a codec regression) fails here.
+    got = json.loads(rx.load_scene(FIXTURES / "text.excalidraw.md"))
+    expected = json.loads((FIXTURES / "text.excalidraw").read_text(encoding="utf-8"))
+    assert got == expected
+
+
+def test_extract_raw_json_drawing_block():
+    scene = {"type": "excalidraw", "elements": [{"id": "r", "type": "rectangle"}]}
+    assert json.loads(rx.extract_excalidraw_md(raw_excalidraw_md(scene))) == scene
+
+
+def test_extract_ignores_text_elements_section():
+    # The '## Text Elements' labels have no geometry; the scene must come from '## Drawing'.
+    # A label that looks like JSON above the real block must not be picked up.
+    scene = {"type": "excalidraw", "elements": [{"id": "r", "type": "rectangle"}]}
+    md = raw_excalidraw_md(scene).replace("ok ^a", '{"type":"excalidraw","elements":[]} ^a')
+    assert json.loads(rx.extract_excalidraw_md(md)) == scene
+
+
+def test_extract_missing_drawing_block_aborts(capsys):
+    with pytest.raises(SystemExit) as exc:
+        rx.extract_excalidraw_md("# Notes\n\nno drawing here\n")
+    assert exc.value.code == 1
+    assert "## Drawing" in capsys.readouterr().err
+
+
+def test_extract_corrupt_compressed_block_aborts(capsys):
+    # An empty (or otherwise unrecoverable) compressed payload must abort with a message,
+    # not raise a raw KeyError/IndexError from the decoder.
+    for payload in ("", "!!!not-base64!!!", "N4Kg"):  # empty, bad alphabet, truncated
+        md = f"## Drawing\n```compressed-json\n{payload}\n```\n%%"
+        with pytest.raises(SystemExit) as exc:
+            rx.extract_excalidraw_md(md)
+        assert exc.value.code == 1
+        assert "decompress" in capsys.readouterr().err
+
+
+def test_render_excalidraw_md_end_to_end(tmp_path):
+    # Full pipeline on a compressed Obsidian file: the scene must be extracted, decompressed,
+    # validated, and rendered (the text fixture's font gate runs, so a green render proves
+    # the fonts loaded too). Default output strips the whole .excalidraw.md suffix.
+    out = rx.render(FIXTURES / "text.excalidraw.md", tmp_path / "diagram.png")
+    assert out.exists() and out.stat().st_size > 0
+
+
+@pytest.mark.parametrize("newline", ["\r\n", "\r"])
+def test_extract_handles_windows_line_endings(newline):
+    # Obsidian files authored/synced on Windows carry CRLF; the LF-anchored '## Drawing'
+    # regex must still match after normalization. Both compressed and raw forms.
+    lf = (FIXTURES / "text.excalidraw.md").read_text(encoding="utf-8")
+    expected = json.loads((FIXTURES / "text.excalidraw").read_text(encoding="utf-8"))
+    assert json.loads(rx.extract_excalidraw_md(lf.replace("\n", newline))) == expected
+    scene = {"type": "excalidraw", "elements": [{"id": "r", "type": "rectangle"}]}
+    raw = raw_excalidraw_md(scene).replace("\n", newline)
+    assert json.loads(rx.extract_excalidraw_md(raw)) == scene
+
+
+# --- Theme selection: --dark / --both -----------------------------------------------
+
+def test_light_flag_overrides_dark_default(tmp_path):
+    # dark=False must beat the renderer's dark default, so the corner comes out light.
+    out = tmp_path / "l.png"
+    rx.render(FIXTURES / "text.excalidraw", out, dark=False)
+    assert all(c >= LIGHT_CHANNEL_MIN for c in first_pixel_rgb(out))
+
+
+def test_dark_flag_overrides_light_file(tmp_path):
+    # dark=True must beat an in-file exportWithDarkMode: false, so the corner comes out dark.
+    data = json.loads((FIXTURES / "text.excalidraw").read_text(encoding="utf-8"))
+    data["appState"]["exportWithDarkMode"] = False
+    src = tmp_path / "d.excalidraw"
+    src.write_text(json.dumps(data), encoding="utf-8")
+    out = tmp_path / "d.png"
+    rx.render(src, out, dark=True)
+    assert all(c <= DARK_CHANNEL_MAX for c in first_pixel_rgb(out))
+
+
+def test_dark_flag_injects_appstate_when_absent(tmp_path):
+    # A file with no appState at all must still honor a forced theme (the injection path
+    # replaces a missing/None appState with a fresh dict rather than crashing).
+    data = json.loads((FIXTURES / "text.excalidraw").read_text(encoding="utf-8"))
+    del data["appState"]
+    src = tmp_path / "n.excalidraw"
+    src.write_text(json.dumps(data), encoding="utf-8")
+    out = tmp_path / "n.png"
+    rx.render(src, out, dark=False)
+    assert all(c >= LIGHT_CHANNEL_MIN for c in first_pixel_rgb(out))
+
+
+def test_cli_both_writes_two_themed_pngs(monkeypatch, tmp_path, capsys):
+    # --both writes -light and -dark from one invocation, each in its own theme, and prints
+    # both paths. This is the whole point: no second pass, no rename.
+    base = tmp_path / "diagram"
+    monkeypatch.setattr(sys, "argv", [
+        "render_excalidraw.py", str(FIXTURES / "text.excalidraw"),
+        "-o", str(base.with_suffix(".png")), "--both",
+    ])
+    rx.main()
+    light, dark = tmp_path / "diagram-light.png", tmp_path / "diagram-dark.png"
+    assert light.exists() and dark.exists()
+    assert all(c >= LIGHT_CHANNEL_MIN for c in first_pixel_rgb(light))
+    assert all(c <= DARK_CHANNEL_MAX for c in first_pixel_rgb(dark))
+    printed = capsys.readouterr().out
+    assert str(light) in printed and str(dark) in printed
+
+
+def test_cli_both_default_naming_strips_md_suffix(monkeypatch, tmp_path):
+    # Without -o, --both derives names from the input, stripping the full .excalidraw.md
+    # suffix: note.excalidraw.md -> note-light.png / note-dark.png, not note.excalidraw-*.
+    src = tmp_path / "note.excalidraw.md"
+    src.write_text((FIXTURES / "text.excalidraw.md").read_text(encoding="utf-8"), encoding="utf-8")
+    monkeypatch.setattr(sys, "argv", ["render_excalidraw.py", str(src), "--both"])
+    rx.main()
+    assert (tmp_path / "note-light.png").exists()
+    assert (tmp_path / "note-dark.png").exists()
+
+
+def test_cli_both_output_base_keeps_dotted_name(monkeypatch, tmp_path):
+    # -o for --both drops only a .png extension: a dotted base like report.v2 must yield
+    # report.v2-light.png, not report-light.png (with_suffix("") would over-strip it).
+    base = tmp_path / "report.v2"
+    monkeypatch.setattr(sys, "argv", [
+        "render_excalidraw.py", str(FIXTURES / "text.excalidraw"), "-o", str(base), "--both",
+    ])
+    rx.main()
+    assert (tmp_path / "report.v2-light.png").exists()
+    assert (tmp_path / "report.v2-dark.png").exists()
+
+
+@pytest.mark.parametrize("name,stem", [
+    ("foo.excalidraw", "foo"),
+    ("foo.excalidraw.md", "foo"),
+    ("my.v2.excalidraw", "my.v2"),
+    ("a.b.excalidraw.md", "a.b"),
+])
+def test_strip_scene_suffix(name, stem):
+    assert rx._strip_scene_suffix(Path("/x") / name) == Path("/x") / stem
+
+
+def test_cli_light_flag_renders_light(monkeypatch, tmp_path):
+    # --light must wire through to render(dark=False): the corner comes out light even
+    # though the renderer's default is dark.
+    out = tmp_path / "l.png"
+    monkeypatch.setattr(sys, "argv", [
+        "render_excalidraw.py", str(FIXTURES / "text.excalidraw"), "-o", str(out), "--light",
+    ])
+    rx.main()
+    assert all(c >= LIGHT_CHANNEL_MIN for c in first_pixel_rgb(out))
+
+
+def test_cli_dark_flag_renders_dark(monkeypatch, tmp_path):
+    # --dark must wire through to render(dark=True), overriding an in-file light setting so
+    # the corner comes out dark. Mirrors the --light CLI test.
+    data = json.loads((FIXTURES / "text.excalidraw").read_text(encoding="utf-8"))
+    data["appState"]["exportWithDarkMode"] = False
+    src = tmp_path / "d.excalidraw"
+    src.write_text(json.dumps(data), encoding="utf-8")
+    out = tmp_path / "d.png"
+    monkeypatch.setattr(sys, "argv", ["render_excalidraw.py", str(src), "-o", str(out), "--dark"])
+    rx.main()
+    assert all(c <= DARK_CHANNEL_MAX for c in first_pixel_rgb(out))
+
+
+@pytest.mark.parametrize("flags", [["--dark", "--both"], ["--dark", "--light"], ["--light", "--both"]])
+def test_cli_theme_flags_are_mutually_exclusive(monkeypatch, flags):
+    monkeypatch.setattr(sys, "argv", ["render_excalidraw.py", "x.excalidraw", *flags])
+    with pytest.raises(SystemExit) as exc:
+        rx.main()
+    assert exc.value.code == 2
+
+
+@pytest.mark.parametrize("flag", ["--dark", "--light", "--both"])
+def test_cli_check_rejects_theme_flags(monkeypatch, flag):
+    # --check with a theme flag would read as "the fixture rendered in that theme".
+    monkeypatch.setattr(sys, "argv", ["render_excalidraw.py", "--check", flag])
+    with pytest.raises(SystemExit) as exc:
+        rx.main()
+    assert exc.value.code == 2
+
+
+# --- Regression: final '## Drawing' block wins; uppercase --both -o suffix stripped ----
+
+def test_extract_picks_final_drawing_block_over_earlier_decoy():
+    # A stray '## Drawing' fence in note content above the plugin's real block must be
+    # ignored: Obsidian always writes the scene as the file's final '## Drawing' section.
+    decoy = {"type": "excalidraw", "elements": [{"id": "DECOY", "type": "rectangle"}]}
+    real = {"type": "excalidraw", "elements": [{"id": "REAL", "type": "rectangle"}]}
+    md = (
+        "# Notes\n\n## Drawing\n"
+        f"```json\n{json.dumps(decoy)}\n```\n\n"
+        "# Excalidraw Data\n\n## Text Elements\nok ^a\n\n## Drawing\n"
+        f"```json\n{json.dumps(real)}\n```\n%%"
+    )
+    assert json.loads(rx.extract_excalidraw_md(md))["elements"][0]["id"] == "REAL"
+
+
+def test_cli_both_output_base_strips_uppercase_png(monkeypatch, tmp_path):
+    # -o with an uppercase .PNG extension must be stripped like .png, not kept as a dotted
+    # base: diagram.PNG -> diagram-light.png, not diagram.PNG-light.png.
+    base = tmp_path / "diagram.PNG"
+    monkeypatch.setattr(sys, "argv", [
+        "render_excalidraw.py", str(FIXTURES / "text.excalidraw"), "-o", str(base), "--both",
+    ])
+    rx.main()
+    assert (tmp_path / "diagram-light.png").exists()
+    assert (tmp_path / "diagram-dark.png").exists()
+
+
+# --- Foreground-aware theme checks (full PNG decode, not just the corner) -------------
+
+def _decode_png_full(png_path: Path):
+    # Unlike first_pixel_rgb (first pixel only), this unfilters every scanline so any
+    # interior/foreground pixel is readable with the stdlib alone. Returns
+    # (width, height, channels, raw_rgb(a)_bytes).
+    raw = png_path.read_bytes()
+    assert raw[:8] == b"\x89PNG\r\n\x1a\n"
+    idat = bytearray()
+    pos = 8
+    width = height = color_type = None
+    while pos < len(raw):
+        length = int.from_bytes(raw[pos:pos + 4], "big")
+        chunk = raw[pos + 4:pos + 8]
+        if chunk == b"IHDR":
+            width, height, bit_depth, color_type = struct.unpack(">IIBB", raw[pos + 8:pos + 18])
+            assert bit_depth == 8 and color_type in (2, 6)
+        elif chunk == b"IDAT":
+            idat += raw[pos + 8:pos + 8 + length]
+        elif chunk == b"IEND":
+            break
+        pos += length + 12
+    channels = 4 if color_type == 6 else 3
+    data = zlib.decompress(bytes(idat))
+    stride = width * channels
+    out = bytearray()
+    prev = bytearray(stride)
+    p = 0
+
+    def paeth(a, b, c):
+        pa, pb, pc = abs(b - c), abs(a - c), abs(a + b - 2 * c)
+        return a if pa <= pb and pa <= pc else b if pb <= pc else c
+
+    for _ in range(height):
+        ftype = data[p]
+        line = bytearray(data[p + 1:p + 1 + stride])
+        p += 1 + stride
+        for i in range(stride):
+            a = line[i - channels] if i >= channels else 0
+            b = prev[i]
+            c = prev[i - channels] if i >= channels else 0
+            if ftype == 1:
+                line[i] = (line[i] + a) & 0xFF
+            elif ftype == 2:
+                line[i] = (line[i] + b) & 0xFF
+            elif ftype == 3:
+                line[i] = (line[i] + ((a + b) >> 1)) & 0xFF
+            elif ftype == 4:
+                line[i] = (line[i] + paeth(a, b, c)) & 0xFF
+        out += line
+        prev = line
+    return width, height, channels, out
+
+
+def _theme_pixel_fractions(png_path: Path) -> tuple[float, float]:
+    # (light_fraction, dark_fraction) over all pixels, reusing the corner-check bounds.
+    width, height, channels, px = _decode_png_full(png_path)
+    total = width * height
+    light = sum(1 for i in range(0, len(px), channels)
+                if all(px[i + k] >= LIGHT_CHANNEL_MIN for k in range(3)))
+    dark = sum(1 for i in range(0, len(px), channels)
+               if all(px[i + k] <= DARK_CHANNEL_MAX for k in range(3)))
+    return light / total, dark / total
+
+
+# Measured fractions for the text fixture: light render (L=0.22, D=0.09), dark render
+# (L=0.09, D=0.22). These bounds sit well inside those with margin.
+THEME_BG_MIN_FRACTION = 0.15
+THEME_INK_MIN_FRACTION = 0.03
+
+
+def test_dark_render_inverts_foreground_ink(tmp_path):
+    # The corner-pixel theme tests only prove the background inverted. This proves the ink
+    # did too: a dark render must have a dark-background majority AND a light-ink minority
+    # (the fixture's dark strokes filtered to light).
+    out = tmp_path / "d.png"
+    rx.render(FIXTURES / "text.excalidraw", out, dark=True)
+    light, dark = _theme_pixel_fractions(out)
+    assert dark > THEME_BG_MIN_FRACTION, f"dark background missing (dark={dark})"
+    assert light > THEME_INK_MIN_FRACTION, f"ink did not invert to light (light={light})"
+
+
+def test_light_render_keeps_foreground_ink_dark(tmp_path):
+    # Mirror: a light render keeps a white-background majority and a dark-ink minority.
+    out = tmp_path / "l.png"
+    rx.render(FIXTURES / "text.excalidraw", out, dark=False)
+    light, dark = _theme_pixel_fractions(out)
+    assert light > THEME_BG_MIN_FRACTION, f"white background missing (light={light})"
+    assert dark > THEME_INK_MIN_FRACTION, f"ink did not stay dark (dark={dark})"
